@@ -20,28 +20,37 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 20px;
         }
-        h2 { color: #1f4e79; margin: 0; }
+        h2 { color: #1f4e79; margin: 0 0 15px 0; }
         .mode-selector {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .mode-selector label {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #1f4e79;
+            border: none;
+            margin: 0;
+            cursor: default;
         }
         .mode-selector select {
-            padding: 6px 12px;
+            width: 100%;
+            padding: 10px;
             font-weight: bold;
+            font-size: 1em;
             color: #1f4e79;
             border: 1px solid #1f4e79;
             background-color: #f8fafc;
+            border-radius: 4px;
         }
         .tabs {
             display: flex;
             border-bottom: 2px solid #b4c6e7;
             margin-bottom: 20px;
+            overflow-x: auto;
         }
         .tab-btn {
             padding: 10px 20px;
@@ -50,6 +59,7 @@
             background: none;
             font-weight: bold;
             color: #555;
+            white-space: nowrap;
         }
         .tab-btn.active {
             color: #1f4e79;
@@ -89,6 +99,9 @@
             box-sizing: border-box;
         }
         .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        @media (max-width: 600px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
         .zone-table {
             width: 100%;
             border-collapse: collapse;
@@ -161,11 +174,12 @@
     <div class="header-container">
         <h2>DSC Master Installer Suite (PC1616 / PC1832 / PC1864)</h2>
         <div class="mode-selector">
-            <label for="modeSelect" style="border:none; margin:0; cursor:default;">Workflow:</label>
+            <label for="modeSelect">Actions:</label>
             <select id="modeSelect" onchange="switchWorkflowMode()">
                 <option value="fresh" selected>Fresh Install</option>
                 <option value="replace_wireless">Replace a Wireless Contact</option>
                 <option value="takeover">Take over a system</option>
+                <option value="zone_list">Generate zone list</option>
             </select>
         </div>
     </div>
@@ -212,32 +226,36 @@
 
         <!-- TAB 2: ZONES 1-16 -->
         <div id="zones1" class="tab-content">
-            <table class="zone-table">
-                <thead>
-                    <tr>
-                        <th>Zone</th>
-                        <th data-tooltip="Section [001]: Dictates how the control panel handles triggers on this hardware address.">Zone Definition Assignment</th>
-                        <th data-tooltip="Select whether this zone uses hardwired terminals or a wireless RF receiver.">Type</th>
-                        <th data-tooltip="Optional Electronic Serial Number for wireless enrollment (Zones 9+).">Wireless ESN</th>
-                    </tr>
-                </thead>
-                <tbody id="zoneTableBody1"></tbody>
-            </table>
+            <div style="overflow-x: auto;">
+                <table class="zone-table">
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th data-tooltip="Section [001]: Dictates how the control panel handles triggers on this hardware address.">Zone Definition Assignment</th>
+                            <th data-tooltip="Select whether this zone uses hardwired terminals or a wireless RF receiver.">Type</th>
+                            <th data-tooltip="Optional Electronic Serial Number for wireless enrollment (Zones 9+).">Wireless ESN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="zoneTableBody1"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- TAB 3: ZONES 17-32 -->
         <div id="zones2" class="tab-content">
-            <table class="zone-table">
-                <thead>
-                    <tr>
-                        <th>Zone</th>
-                        <th data-tooltip="Section [002]: Dictates behaviors for higher tier zones 17-32.">Zone Definition Assignment</th>
-                        <th data-tooltip="Select whether this zone uses hardwired terminals or a wireless RF receiver.">Type</th>
-                        <th data-tooltip="Optional Electronic Serial Number for wireless enrollment (Zones 9+).">Wireless ESN</th>
-                    </tr>
-                </thead>
-                <tbody id="zoneTableBody2"></tbody>
-            </table>
+            <div style="overflow-x: auto;">
+                <table class="zone-table">
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th data-tooltip="Section [002]: Dictates behaviors for higher tier zones 17-32.">Zone Definition Assignment</th>
+                            <th data-tooltip="Select whether this zone uses hardwired terminals or a wireless RF receiver.">Type</th>
+                            <th data-tooltip="Optional Electronic Serial Number for wireless enrollment (Zones 9+).">Wireless ESN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="zoneTableBody2"></tbody>
+                </table>
+            </div>
         </div>
 
         <button class="generate-btn" onclick="buildProgrammingMatrix()">Generate Programming Template</button>
@@ -286,11 +304,51 @@
         <button class="generate-btn" onclick="buildTakeoverMatrix()">Generate Takeover Keypresses</button>
     </div>
 
-    <h3>Broken-Down Keypress Sequence</h3>
-    <div class="output-container" id="output">
-        <div class="sequence-block">
-            <div class="sequence-title">Ready Status</div>
-            <div class="sequence-keys">Fill values and tap generate...</div>
+    <!-- GENERATE ZONE LIST VIEW -->
+    <div id="zoneListView" style="display: none;">
+        <div class="grid-2">
+            <div class="form-group">
+                <label>First Name</label>
+                <input type="text" id="custFirstName" placeholder="e.g. John">
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" id="custLastName" placeholder="e.g. Doe">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Address</label>
+            <input type="text" id="custAddress" placeholder="e.g. 123 Main St, City">
+        </div>
+        
+        <h3 style="color: #1f4e79; margin-top: 25px; margin-bottom: 10px;">Activated Zones Custom Labels</h3>
+        <p style="font-size: 0.85em; color: #666; margin-bottom: 15px;">Only zones defined as active (non-null) in the Fresh Install tab will appear below for labeling.</p>
+        
+        <div style="overflow-x: auto;">
+            <table class="zone-table">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Zone</th>
+                        <th style="width: 250px;">Definition Type</th>
+                        <th>Custom Text Label</th>
+                    </tr>
+                </thead>
+                <tbody id="activeZoneListBody">
+                    <tr><td colspan="3" style="text-align: center; color: #666; font-style: italic;">Configure and select zones in the Fresh Install tab first.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <button class="generate-btn" onclick="exportZoneList()">Generate & Export Zone List</button>
+    </div>
+
+    <div id="outputSection">
+        <h3>Broken-Down Keypress Sequence</h3>
+        <div class="output-container" id="output">
+            <div class="sequence-block">
+                <div class="sequence-title">Ready Status</div>
+                <div class="sequence-keys">Fill values and tap generate...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -316,11 +374,14 @@
         let freshView = document.getElementById('freshInstallView');
         let replaceView = document.getElementById('replaceWirelessView');
         let takeoverView = document.getElementById('takeoverView');
-        let output = document.getElementById('output');
+        let zoneListView = document.getElementById('zoneListView');
+        let outputSec = document.getElementById('outputSection');
 
         freshView.style.display = 'none';
         replaceView.style.display = 'none';
         takeoverView.style.display = 'none';
+        zoneListView.style.display = 'none';
+        outputSec.style.display = 'block';
 
         if (mode === 'fresh') {
             freshView.style.display = 'block';
@@ -328,8 +389,11 @@
             replaceView.style.display = 'block';
         } else if (mode === 'takeover') {
             takeoverView.style.display = 'block';
+        } else if (mode === 'zone_list') {
+            zoneListView.style.display = 'block';
+            outputSec.style.display = 'none';
+            populateActiveZoneTable();
         }
-        output.innerHTML = `<div class="sequence-block"><div class="sequence-title">Ready Status</div><div class="sequence-keys">Fill values and tap generate...</div></div>`;
     }
 
     function switchTab(evt, id) {
@@ -409,6 +473,77 @@
 
     populateTable('zoneTableBody1', 1, 16);
     populateTable('zoneTableBody2', 17, 32);
+
+    function populateActiveZoneTable() {
+        let body = document.getElementById('activeZoneListBody');
+        body.innerHTML = "";
+        
+        let activeCount = 0;
+        for (let i = 1; i <= 32; i++) {
+            let selectElem = document.getElementById(`def-z${i}`);
+            if (selectElem && selectElem.value !== "00") {
+                activeCount++;
+                let defText = selectElem.options[selectElem.selectedIndex].text;
+                
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>Zone ${i}</strong></td>
+                    <td style="font-size: 0.9em; color: #444;">${defText}</td>
+                    <td><input type="text" id="label-z${i}" placeholder="e.g. Front Door, Kitchen Motion" style="width: 100%;"></td>
+                `;
+                body.appendChild(tr);
+            }
+        }
+
+        if (activeCount === 0) {
+            body.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #666; font-style: italic;">No active zones found. Please configure zone definitions in the 'Fresh Install' tab first.</td></tr>`;
+        }
+    }
+
+    function exportZoneList() {
+        let firstName = document.getElementById('custFirstName').value.trim();
+        let lastName = document.getElementById('custLastName').value.trim();
+        let address = document.getElementById('custAddress').value.trim();
+
+        let reportLines = [];
+        reportLines.push("========================================");
+        reportLines.push("          DSC SYSTEM ZONE LIST          ");
+        reportLines.push("========================================");
+        reportLines.push(`Customer: ${firstName} ${lastName}`);
+        reportLines.push(`Address:  ${address}`);
+        reportLines.push(`Date:     ${new Date().toLocaleDateString()}`);
+        reportLines.push("----------------------------------------\n");
+
+        let activeCount = 0;
+        for (let i = 1; i <= 32; i++) {
+            let selectElem = document.getElementById(`def-z${i}`);
+            if (selectElem && selectElem.value !== "00") {
+                activeCount++;
+                let defText = selectElem.options[selectElem.selectedIndex].text;
+                let labelInput = document.getElementById(`label-z${i}`);
+                let customLabel = labelInput && labelInput.value.trim() ? labelInput.value.trim() : "Unlabeled";
+                
+                reportLines.push(`Zone ${String(i).padStart(2, '0')}: ${customLabel}`);
+                reportLines.push(`         Type: ${defText}\n`);
+            }
+        }
+
+        if (activeCount === 0) {
+            alert("No active zones are configured to export.");
+            return;
+        }
+
+        let fileContent = reportLines.join('\n');
+        let blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = `${lastName || 'Customer'}_Zone_List.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 
     function buildReplaceWirelessMatrix() {
         const instRaw = document.getElementById('repInstallerCode').value.trim();
